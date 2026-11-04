@@ -1,0 +1,289 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://cdn.sheetjs.com; style-src 'self' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; connect-src 'self' https:; img-src 'self' data:; object-src 'none'; base-uri 'self'; form-action 'none'">
+<meta name="referrer" content="no-referrer">
+<meta name="description" content="RepasseMed: cálculo, aprovação e controle do repasse médico da clínica.">
+<title>RepasseMed – repasse médico</title>
+<link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=Public+Sans:wght@400;500;600;700&display=swap">
+<link rel="stylesheet" href="css/app.css">
+<script defer src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
+<script type="module" src="js/app.js"></script>
+</head>
+<body>
+<a class="skip" href="#main">Ir para o conteúdo</a>
+<header class="ecg">
+  <div class="wrap">
+    <div class="hero">
+      <div>
+        <h1>Repasse médico</h1>
+        <div class="sub" id="clinicName">RepasseMed</div>
+        <svg class="trace" viewBox="0 0 600 46" preserveAspectRatio="none" aria-hidden="true"><path d="M0 30 H120 l8 -6 l8 6 H170 l6 4 l8 -28 l8 34 l6 -10 H260 l10 -8 l10 8 H380 l8 -6 l8 6 H430 l6 4 l8 -28 l8 34 l6 -10 H520 l10 -8 l10 8 H600"/></svg>
+      </div>
+      <div class="period" role="group" aria-label="Período de repasse">
+        <label>Mês dos atendimentos<input type="month" id="mes"></label>
+        <label>Período<select id="tipo"></select></label>
+        <div class="periodInfo"><span id="periodStatus" class="pill neutral">Novo</span><span class="muted small" id="periodDates"></span></div>
+      </div>
+    </div>
+    <nav class="tabs" role="tablist" aria-label="Seções">
+      <a role="tab" href="#quinzena" data-tab="quinzena">Repasse do período</a>
+      <a role="tab" href="#regras" data-tab="regras">Regras</a>
+      <a role="tab" href="#medicos" data-tab="medicos">Médicos</a>
+      <a role="tab" href="#historico" data-tab="historico">Histórico</a>
+      <a role="tab" href="#assistente" data-tab="assistente">Assistente IA</a>
+      <a role="tab" href="#config" data-tab="config">Configurações</a>
+    </nav>
+  </div>
+</header>
+
+<main class="wrap" id="main">
+  <div id="banner"></div>
+
+  <!-- ============ PERÍODO ============ -->
+  <div class="panel" id="tab-quinzena">
+    <div class="step" id="st1">
+      <div class="stepnum">1</div>
+      <div class="body">
+        <div class="head"><h2>Carregar a produção</h2><span class="muted small" id="fileInfo">Relatório do sistema da clínica em Excel ou CSV</span></div>
+        <div id="lockNote1"></div>
+        <label class="drop" id="drop">
+          <input type="file" id="file" accept=".xlsx,.xls,.csv,.ods">
+          <strong>Clique para escolher o arquivo</strong> ou arraste aqui.
+          <span class="muted small">Os dados dos pacientes ficam somente neste computador.</span>
+        </label>
+        <div id="mapBox" hidden>
+          <p class="muted small mt">Confira qual coluna do relatório corresponde a cada informação. Campos com * são obrigatórios.</p>
+          <div class="map" id="map"></div>
+          <div class="row mt">
+            <button class="btn" id="aiMap" type="button">Ajustar colunas com a IA</button>
+            <button class="btn primary" id="calc" type="button">Calcular repasse</button>
+            <span class="muted small" id="mapMsg" role="status"></span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="step" id="st2">
+      <div class="stepnum">2</div>
+      <div class="body">
+        <div class="head"><h2>Conferir</h2><span id="alertSummary" class="pill neutral">Aguardando cálculo</span></div>
+        <div id="alerts"></div>
+        <div id="resumo"></div>
+        <details class="ajustes" id="ajBox" hidden>
+          <summary><b>Ajustes manuais</b> <span class="muted small">adiantamento, glosa, complemento, correção</span></summary>
+          <p class="muted small">Todo ajuste precisa de motivo e passa pela aprovação junto com o período.</p>
+          <div class="ajForm">
+            <label>Médico<input list="medList" id="ajMed" type="text"></label>
+            <label>Tipo<select id="ajTipo"><option value="desconto">Desconto</option><option value="acrescimo">Acréscimo</option></select></label>
+            <label>Categoria<select id="ajCat"><option value="consultas">Consultas</option><option value="exames">Exames</option></select></label>
+            <label>Valor (R$)<input id="ajVal" type="text" inputmode="decimal" placeholder="0,00"></label>
+            <label class="grow">Motivo<input id="ajMot" type="text" placeholder="Ex.: adiantamento aprovado em 10/11"></label>
+            <button class="btn" id="ajAdd" type="button">Adicionar ajuste</button>
+          </div>
+          <datalist id="medList"></datalist>
+          <div class="tablewrap"><table id="ajTable"></table></div>
+        </details>
+        <div class="row mt" id="analyzeRow" hidden>
+          <button class="btn" id="analyze" type="button">Analisar o período com a IA</button>
+          <span class="muted small">Compara com o período anterior e aponta o que parece fora do padrão.</span>
+        </div>
+        <div id="analysis" aria-live="polite"></div>
+      </div>
+    </div>
+
+    <div class="step" id="st3">
+      <div class="stepnum">3</div>
+      <div class="body">
+        <div class="head"><h2>Aprovação</h2><span id="approvalPill" class="pill neutral">Não aprovado</span></div>
+        <div id="approvalBody">
+          <p class="muted small">Copie a mensagem, envie ao aprovador e, quando ele responder, registre aqui. Sem aprovação as etapas seguintes ficam bloqueadas.</p>
+          <textarea id="approvalMsg" aria-label="Mensagem de aprovação" readonly></textarea>
+          <div class="row mt"><button class="btn" id="copyApproval" type="button">Copiar mensagem</button></div>
+          <div class="row mt">
+            <label class="lbl">Aprovado por<input type="text" id="apPor"></label>
+            <label class="lbl">Em<input type="date" id="apEm"></label>
+            <label class="lbl grow">Como foi a aprovação<input type="text" id="apObs" placeholder="Ex.: WhatsApp às 10h"></label>
+            <button class="btn primary" id="approve" type="button">Registrar aprovação</button>
+          </div>
+        </div>
+        <div id="approvedBody" hidden>
+          <p id="approvedText"></p>
+          <div class="row"><button class="btn ghost" id="reopen" type="button">Reabrir período</button><span class="muted small">Reabrir exige motivo e fica na auditoria.</span></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="step" id="st4">
+      <div class="stepnum">4</div>
+      <div class="body">
+        <div class="head"><h2>Lançar as contas a pagar</h2><span class="muted small">Uma conta a pagar por médico no sistema financeiro</span></div>
+        <div class="cards" id="caCards"></div>
+      </div>
+    </div>
+
+    <div class="step" id="st5">
+      <div class="stepnum">5</div>
+      <div class="body">
+        <div class="head"><h2>Pagar e conciliar</h2><span class="muted small">Um PIX por médico, valor exato</span></div>
+        <div class="alert info"><span class="dot" aria-hidden="true"></span><div class="txt">Pague pelo banco usando o valor e a descrição abaixo. Não dê baixa manual na conta a pagar: no dia seguinte, na conciliação do extrato, vincule cada PIX à conta a pagar do médico.</div></div>
+        <div class="tablewrap"><table id="payTable"></table></div>
+      </div>
+    </div>
+
+    <div class="step" id="st6">
+      <div class="stepnum">6</div>
+      <div class="body">
+        <div class="head"><h2>Demonstrativos</h2><span class="muted small">Enviar a cada médico com o comprovante</span></div>
+        <div class="row"><button class="btn" id="printAll" type="button">Imprimir todos</button><button class="btn" id="csvAll" type="button">Baixar resumo (CSV)</button><button class="btn" id="csvDet" type="button">Baixar detalhe (CSV)</button></div>
+        <div class="cards" id="demoCards"></div>
+      </div>
+    </div>
+
+    <details class="auditoria"><summary>Auditoria do período</summary><div class="tablewrap"><table id="audTable"></table></div></details>
+  </div>
+
+  <!-- ============ REGRAS ============ -->
+  <div class="panel" id="tab-regras" hidden>
+    <section class="block">
+      <h2>Percentuais e taxas</h2>
+      <p class="muted small">Alterar regra exige o nome de quem aprovou. Períodos já aprovados não mudam.</p>
+      <div class="form mt">
+        <label>Imposto sobre o valor (%)<input type="text" inputmode="decimal" id="rImposto"></label>
+        <label>Repasse da consulta (%)<input type="text" inputmode="decimal" id="rConsulta"></label>
+        <label>Taxa cartão débito (%)<input type="text" inputmode="decimal" id="rDeb"></label>
+        <label>Taxa cartão crédito à vista (%)<input type="text" inputmode="decimal" id="rCred"></label>
+        <label>Taxa cartão parcelado (%)<input type="text" inputmode="decimal" id="rParc"></label>
+        <label>Taxa de cartão<select id="rDescTaxa"><option value="1">Desconta antes do percentual</option><option value="0">Não desconta</option></select></label>
+        <label>Convênio entra no repasse<select id="rConv"><option value="atendimento">No período do atendimento</option><option value="recebimento">Só depois que o plano pagar</option></select></label>
+      </div>
+      <div class="formula" id="formula"></div>
+    </section>
+    <section class="block">
+      <h2>Tabela de exames</h2>
+      <p class="muted small">O texto é procurado dentro do nome do procedimento. Valor fixo em R$ por exame, ou percentual sobre o valor líquido.</p>
+      <div class="tablewrap"><table class="editable" id="exaTable"></table></div>
+      <button class="btn sm mt" id="addExa" type="button">Adicionar exame</button>
+    </section>
+    <section class="block">
+      <h2>Médicos com regra especial</h2>
+      <p class="muted small">Substitui o percentual da consulta para o médico. Escreva "a confirmar" na observação enquanto a regra não estiver fechada: aparece na mensagem de aprovação.</p>
+      <div class="tablewrap"><table class="editable" id="espTable"></table></div>
+      <button class="btn sm mt" id="addEsp" type="button">Adicionar regra especial</button>
+    </section>
+    <section class="block">
+      <h2>Formas de pagamento</h2>
+      <p class="muted small">O sistema reconhece PIX, dinheiro, débito, crédito, parcelado e convênios. Use esta tabela para nomes próprios do seu relatório (ex.: "Cielo D" = débito).</p>
+      <div class="tablewrap"><table class="editable" id="payMapTable"></table></div>
+      <button class="btn sm mt" id="addPayMap" type="button">Adicionar forma</button>
+      <label class="lbl block mt">Palavras que identificam convênio (separadas por vírgula)<input type="text" id="rConvWords"></label>
+    </section>
+    <section class="block sticky-save">
+      <div class="row">
+        <label class="lbl grow">Mudança aprovada por<input type="text" id="rAprov" placeholder="Ex.: Dr. Carlos, por WhatsApp, 05/11/2026"></label>
+        <button class="btn primary" id="saveRules" type="button">Salvar regras</button>
+      </div>
+      <div id="rulesErr" role="alert"></div>
+      <details class="mt"><summary class="small">Histórico de mudanças de regra</summary><div class="tablewrap"><table id="rulesLog"></table></div></details>
+    </section>
+  </div>
+
+  <!-- ============ MÉDICOS ============ -->
+  <div class="panel" id="tab-medicos" hidden>
+    <section class="block">
+      <h2>Cadastro dos médicos</h2>
+      <p class="muted small">Liga o nome que aparece no relatório ao fornecedor do sistema financeiro. "Outros nomes" aceita variações separadas por vírgula. Médico PJ exige nota fiscal antes do pagamento.</p>
+      <div class="tablewrap"><table class="editable" id="medTable"></table></div>
+      <div class="row mt"><button class="btn sm" id="addMed" type="button">Adicionar médico</button><button class="btn sm" id="medFromCalc" type="button">Adicionar os médicos do relatório carregado</button></div>
+    </section>
+    <section class="block">
+      <div class="row"><label class="lbl grow">Mudança aprovada por<input type="text" id="mAprov" placeholder="Nome de quem autorizou"></label><button class="btn primary" id="saveMed" type="button">Salvar cadastro</button></div>
+      <div id="medErr" role="alert"></div>
+    </section>
+  </div>
+
+  <!-- ============ HISTÓRICO ============ -->
+  <div class="panel" id="tab-historico" hidden>
+    <section class="block">
+      <h2>Repasse por período</h2>
+      <div id="histChart"></div>
+      <div class="tablewrap mt"><table id="histTable"></table></div>
+    </section>
+  </div>
+
+  <!-- ============ ASSISTENTE ============ -->
+  <div class="panel" id="tab-assistente" hidden>
+    <div class="chat">
+      <div class="msgs" id="msgs" aria-live="polite">
+        <div class="msg bot">Pergunte sobre o processo de repasse, as regras ou o período aberto. Eu vejo os totais por médico, nunca os nomes dos pacientes.</div>
+      </div>
+      <div class="chips" id="chips"></div>
+      <div class="composer">
+        <textarea id="ask" placeholder="Escreva sua pergunta" aria-label="Pergunta"></textarea>
+        <button class="btn primary" id="send" type="button">Enviar</button>
+        <button class="btn" id="stop" type="button" hidden>Parar</button>
+      </div>
+    </div>
+    <p class="muted small mt" id="aiState"></p>
+  </div>
+
+  <!-- ============ CONFIGURAÇÕES ============ -->
+  <div class="panel" id="tab-config" hidden>
+    <section class="block">
+      <h2>Clínica</h2>
+      <div class="form mt">
+        <label>Nome da clínica<input type="text" id="cNome"></label>
+        <label>CNPJ<input type="text" id="cCnpj"></label>
+        <label>Quem aprova o repasse<input type="text" id="cAprov" placeholder="Ex.: Dr. Carlos"></label>
+        <label>Quem executa (seu nome)<input type="text" id="cResp" placeholder="Ex.: Amanda"></label>
+      </div>
+    </section>
+    <section class="block">
+      <h2>Calendário de pagamento</h2>
+      <div class="form mt">
+        <label>Periodicidade<select id="cPer"><option value="quinzenal">Quinzenal</option><option value="mensal">Mensal</option></select></label>
+        <label>1ª quinzena: pagar no dia<input type="number" min="1" max="28" id="cQ1"></label>
+        <label>2ª quinzena: pagar no dia útil nº (mês seguinte)<input type="number" min="1" max="15" id="cQ2"></label>
+        <label>Mensal: pagar no dia útil nº (mês seguinte)<input type="number" min="1" max="15" id="cM"></label>
+      </div>
+      <label class="lbl block mt">Feriados locais (estaduais e municipais), no formato DD/MM/AAAA separados por vírgula<input type="text" id="cFer" placeholder="Ex.: 16/08/2026, 19/10/2026"></label>
+      <p class="muted small">Feriados nacionais, Carnaval, Sexta-feira Santa e Corpus Christi já são considerados.</p>
+    </section>
+    <section class="block">
+      <h2>Assistente de IA</h2>
+      <p class="muted small">A IA recebe só totais por médico e alertas. Nunca recebe nomes de pacientes.</p>
+      <div class="form mt">
+        <label>Modo<select id="aiMode"><option value="off">Desligada</option><option value="direct">Chave da API neste navegador</option><option value="proxy">Servidor proxy da clínica</option></select></label>
+        <label id="lKey">Chave da API Anthropic<input type="password" id="aiKey" autocomplete="off" placeholder="sk-ant-..."></label>
+        <label id="lUrl">Endereço do proxy<input type="url" id="aiUrl" placeholder="https://repassemed-proxy.SEU.workers.dev"></label>
+        <label id="lTok">Token da clínica<input type="password" id="aiTok" autocomplete="off"></label>
+        <label>Modelo<input type="text" id="aiModel"></label>
+      </div>
+      <div class="row mt"><button class="btn" id="aiTest" type="button">Testar conexão</button><span class="small" id="aiTestMsg" role="status"></span></div>
+    </section>
+    <section class="block">
+      <h2>Dados e privacidade</h2>
+      <label class="check"><input type="checkbox" id="cDet"> Guardar o detalhe dos atendimentos neste computador (permite reimprimir demonstrativos e recalcular)</label>
+      <p class="muted small" id="usage"></p>
+      <div class="row mt">
+        <button class="btn" id="backup" type="button">Baixar backup</button>
+        <label class="btn">Restaurar backup<input type="file" id="restore" accept=".json" hidden></label>
+        <button class="btn danger" id="wipe" type="button">Apagar todos os dados</button>
+      </div>
+      <p class="muted small">Faça backup toda semana: os dados ficam só neste navegador. Limpar o histórico do navegador apaga os dados.</p>
+    </section>
+    <div class="row"><button class="btn primary" id="saveCfg" type="button">Salvar configurações</button><span class="small" id="cfgMsg" role="status"></span></div>
+  </div>
+</main>
+
+<footer class="wrap foot muted small">RepasseMed <span id="ver"></span>. Desenvolvido por Assunção Inteligência Financeira.</footer>
+<div id="print" aria-hidden="true"></div>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+<dialog id="dlg"><form method="dialog"><h3 id="dlgTitle"></h3><p id="dlgText" class="small"></p><input type="text" id="dlgInput" hidden><div class="row mt end"><button class="btn" value="cancel">Cancelar</button><button class="btn primary" value="ok" id="dlgOk">Confirmar</button></div></form></dialog>
+</body>
+</html>

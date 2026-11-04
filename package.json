@@ -1,0 +1,12 @@
+{
+  "name": "repassemed",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Calculo e gestao de repasse medico para clinicas",
+  "scripts": {
+    "test": "node --test tests/*.test.mjs",
+    "test:e2e": "python3 tests/e2e/fluxo.py http://localhost:8765 vendor-test/xlsx.full.min.js && python3 tests/e2e/ia.py http://localhost:8765 vendor-test/xlsx.full.min.js"
+  },
+  "engines": { "node": ">=20" }
+}
