@@ -1,0 +1,18 @@
+Relatório de Produção por Profissional;;;;;;;
+Período: 01/11/2026 a 15/11/2026;;;;;;;
+Data;Paciente;Profissional;Procedimento;Tipo;Forma de Pagamento;Convênio;Valor
+03/11/2026;Paciente Exemplo 01;Dr. André Souza;Consulta cardiológica;Consulta;PIX;Particular;300,00
+03/11/2026;Paciente Exemplo 02;Dr. André Souza;Consulta cardiológica;Consulta;Cartão de Crédito;Particular;300,00
+04/11/2026;Paciente Exemplo 03;Dr. André Souza;Holter 24 horas;Exame;Cartão de Débito;Particular;250,00
+04/11/2026;Paciente Exemplo 04;Dra. Maria Clara Lima;Consulta cardiológica;Consulta;;Humana Saúde;180,00
+05/11/2026;Paciente Exemplo 05;Dra. Maria Clara Lima;Ecocardiograma transtorácico;Exame;;IAPEP;220,00
+05/11/2026;Paciente Exemplo 06;Dr. Marcelo Pires;Consulta cardiológica;Consulta;Dinheiro;Particular;350,00
+06/11/2026;Paciente Exemplo 07;Dr. Marcelo Pires;MAPA 24 horas;Exame;Crédito 3x;Particular;280,00
+06/11/2026;Paciente Exemplo 08;Dr. Fábio Leal;Consulta de retorno;Consulta;PIX;Particular;0,00
+07/11/2026;Paciente Exemplo 09;Dr. Fábio Leal;Teste ergométrico;Exame;PIX;Particular;320,00
+10/11/2026;Paciente Exemplo 10;Dr. Fábio Leal;Consulta cardiológica;Consulta;PIX;Particular;300,00
+10/11/2026;Paciente Exemplo 10;Dr. Fábio Leal;Consulta cardiológica;Consulta;PIX;Particular;300,00
+12/11/2026;Paciente Exemplo 11;Dra. Vitória Rocha;Consulta cardiológica;Consulta;Cartão de Débito;Particular;300,00
+13/11/2026;Paciente Exemplo 12;Dra. Vitória Rocha;Ecocardiograma transtorácico;Exame;PIX;Particular;400,00
+14/11/2026;Paciente Exemplo 13;Dr. André Souza;Consulta cardiológica;Consulta;;GEAP;150,00
+;;;;;;Total;4130,00
