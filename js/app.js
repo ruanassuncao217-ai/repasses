@@ -9,8 +9,9 @@ import {
 import { buildPeriod, br, previousPeriodId, suggestedPeriod, MESES } from "./periodo.js";
 import * as store from "./storage.js";
 import { ask, askJSON, maskSample, testConnection, AIError } from "./ai.js";
+import { readPdf } from "./pdf.js";
 
-export const VERSION = "1.0.0";
+export const VERSION = "1.1.0";
 
 /* ================================================================== */
 /* Utilidades de tela                                                  */
@@ -124,9 +125,16 @@ function onPeriodChange() {
 /* ================================================================== */
 async function readFile(file) {
   if (isApproved()) { toast("Período aprovado. Reabra para trocar o arquivo."); return; }
-  if (!window.XLSX) { toast("O leitor de planilhas não carregou. Verifique a internet e recarregue a página."); return; }
+  const isPdf = /\.pdf$/i.test(file.name) || file.type === "application/pdf";
+  if (!isPdf && !window.XLSX) { toast("O leitor de planilhas não carregou. Verifique a internet e recarregue a página."); return; }
   try {
     const buf = await file.arrayBuffer();
+    let aoa;
+    if (isPdf) {
+      $("#fileInfo").textContent = `Lendo ${file.name}…`;
+      aoa = await readPdf(buf);
+      if (!aoa.length) { toast("Não encontrei uma tabela de atendimentos neste PDF. Se for um PDF escaneado (imagem), exporte o relatório em Excel."); renderStep1(); return; }
+    } else {
     let wb;
     if (/\.(csv|txt)$/i.test(file.name)) {
       // CSV: decodifica nós mesmos (UTF-8 ou ANSI/Windows-1252) e não deixa a
@@ -139,7 +147,8 @@ async function readFile(file) {
       wb = window.XLSX.read(buf, { type: "array", cellDates: true, dense: true });
     }
     const ws = wb.Sheets[wb.SheetNames[0]];
-    const aoa = window.XLSX.utils.sheet_to_json(ws, { header: 1, defval: "", raw: true, blankrows: false });
+    aoa = window.XLSX.utils.sheet_to_json(ws, { header: 1, defval: "", raw: true, blankrows: false });
+    }
     const t = tableFromMatrix(aoa);
     if (!t.rows.length) { toast("Não encontrei linhas de atendimento no arquivo."); return; }
     const tab = { headers: t.headers, rows: t.rows.map(r => Object.fromEntries(Object.entries(r).map(([k, v]) => [k, v instanceof Date ? localISO(v) : normDateText(v)]))) };
@@ -157,7 +166,7 @@ async function readFile(file) {
     $("#mapMsg").textContent = reuse ? "Usei as mesmas colunas do arquivo anterior. Confira e calcule." : "Confira as colunas e calcule.";
   } catch (e) {
     console.error(e);
-    toast("Não consegui ler o arquivo. Salve como .xlsx ou .csv e tente de novo.");
+    toast("Não consegui ler o arquivo. Use o relatório em PDF, Excel (.xlsx) ou CSV e tente de novo.");
   }
 }
 
@@ -166,7 +175,7 @@ function renderStep1() {
   const locked = isApproved();
   $("#lockNote1").innerHTML = locked ? `<div class="alert info"><span class="dot"></span><div class="txt">Período aprovado: arquivo, colunas e ajustes estão travados.</div></div>` : "";
   $("#drop").hidden = locked;
-  $("#fileInfo").textContent = doc.arquivo ? `${doc.arquivo.nome}: ${doc.arquivo.linhas} linhas` : "Relatório do sistema da clínica em Excel ou CSV";
+  $("#fileInfo").textContent = doc.arquivo ? `${doc.arquivo.nome}: ${doc.arquivo.linhas} linhas` : "Relatório do sistema da clínica em PDF, Excel ou CSV";
   if (!t) { $("#mapBox").hidden = true; if (doc.arquivo && !locked) $("#fileInfo").textContent += " (carregue de novo: o detalhe não fica guardado)"; return; }
   $("#mapBox").hidden = false;
   const opts = h => `<option value="">— não tem —</option>` + t.headers.map(x => `<option ${x === h ? "selected" : ""} value="${esc(x)}">${esc(x)}</option>`).join("");
@@ -190,6 +199,16 @@ function recalc(showErrors = true) {
     result = null;
     if (showErrors) { $("#mapMsg").textContent = e.message; toast("Corrija as regras antes de calcular"); }
     return false;
+  }
+  // Atendimentos com data fora do período: evita pagar o mês inteiro numa quinzena
+  const pp = doc.aprovacao ? doc.periodo : period;
+  if (doc.mapping.data && pp?.inicio && pp?.fim) {
+    const fora = result.linhas.filter(l => typeof l.data === "string" && /^\d{4}-\d{2}-\d{2}$/.test(l.data) && (l.data < pp.inicio || l.data > pp.fim));
+    if (fora.length) {
+      const v = fora.reduce((a, l) => a + (Number(l.valor) || 0), 0);
+      result.alerts.unshift({ code: "FORA_PERIODO", level: "bad", msg: `${fora.length} atendimento(s) fora do período ${br(pp.inicio)} a ${br(pp.fim)} (${formatBRL(v)}). Escolha o período certo ou use um relatório só deste período`, linhas: fora.map(l => l.i) });
+      result.bloqueado = true;
+    }
   }
   const integ = checkIntegrity(result);
   if (!integ.ok) {

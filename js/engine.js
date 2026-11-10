@@ -130,7 +130,7 @@ export function formatPlain(cents) {
 /* ------------------------------------------------------------------ */
 
 export const FIELDS = [
-  { k: "medico", label: "Médico", req: true, syn: ["medico", "profissional", "executante", "prestador", "doutor", "responsavel"] },
+  { k: "medico", label: "Médico", req: true, syn: ["medico", "profissional", "executante", "prestador", "doutor", "responsavel", "execut", "prof"] },
   { k: "procedimento", label: "Procedimento", req: true, syn: ["procedimento", "servico", "descricao", "item", "exame"] },
   { k: "valor", label: "Valor", req: true, syn: ["valor", "total", "bruto", "preco", "vl"] },
   { k: "tipo", label: "Tipo (consulta ou exame)", req: false, syn: ["tipo", "categoria", "grupo", "classe"] },
@@ -177,8 +177,11 @@ export function tableFromMatrix(aoa) {
 export function autoMap(headers) {
   const used = new Set(), m = {};
   for (const f of FIELDS) {
-    let hit = headers.find(h => !used.has(h) && f.syn.includes(normalize(h)));
-    if (!hit) for (const s of f.syn) { hit = headers.find(h => !used.has(h) && normalize(h).includes(s)); if (hit) break; }
+    // "Data Pagamento" é data, não forma de pagamento: campos que não são data
+    // ignoram cabeçalhos que começam com "data"/"dt".
+    const ok = h => !used.has(h) && (f.k === "data" || !/^(data|dt)\b/.test(normalize(h)));
+    let hit = headers.find(h => ok(h) && f.syn.includes(normalize(h)));
+    if (!hit) for (const s of f.syn) { hit = headers.find(h => ok(h) && normalize(h).includes(s)); if (hit) break; }
     m[f.k] = hit || "";
     if (hit) used.add(hit);
   }
@@ -266,7 +269,9 @@ export function classifyPayment(pagTxt, convTxt, rules) {
   }
   if (conv && !NAO_CONVENIO.test(conv)) return "convenio";
   if (/debito/.test(pag)) return "debito";
-  if (/parcel|\b\d{1,2}\s*x\b/.test(pag)) return "parcelado";
+  // "1x" é crédito à vista; parcelado só a partir de 2x
+  const px = /\b(\d{1,2})\s*x\b/.exec(pag);
+  if (/parcel/.test(pag) || (px && Number(px[1]) >= 2)) return "parcelado";
   if (/credito|cartao/.test(pag)) return "credito";
   if (/pix|dinheiro|especie|transferencia|\bted\b|\bdoc\b|boleto|particular|deposito/.test(pag)) return "semtaxa";
   const words = (rules.convenioWords || []).map(normalize).filter(Boolean);
