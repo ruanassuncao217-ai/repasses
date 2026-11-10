@@ -29,6 +29,7 @@ css/app.css         visual (claro e escuro)
 js/engine.js        motor de cálculo: módulo puro, em centavos inteiros e BigInt
 js/periodo.js       períodos, dias úteis, Páscoa e feriados móveis
 js/storage.js       dados no navegador (localStorage), backup e restauração
+js/pdf.js           leitor de relatórios em PDF (pdf.js 4.10.38)
 js/ai.js            cliente da API da Anthropic (direto ou via proxy)
 js/app.js           interface e fluxo
 worker/proxy.js     proxy opcional da IA (Cloudflare Workers) para revenda

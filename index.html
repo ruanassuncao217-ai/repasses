@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://cdn.sheetjs.com; style-src 'self' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; connect-src 'self' https:; img-src 'self' data:; object-src 'none'; base-uri 'self'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://cdn.sheetjs.com https://cdn.jsdelivr.net/npm/pdfjs-dist@4.10.38/; worker-src 'self' blob: https://cdn.jsdelivr.net/npm/pdfjs-dist@4.10.38/; style-src 'self' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; connect-src 'self' https:; img-src 'self' data:; object-src 'none'; base-uri 'self'; form-action 'none'">
 <meta name="referrer" content="no-referrer">
 <meta name="description" content="RepasseMed: cálculo, aprovação e controle do repasse médico da clínica.">
 <title>RepasseMed – repasse médico</title>
@@ -50,10 +50,10 @@
     <div class="step" id="st1">
       <div class="stepnum">1</div>
       <div class="body">
-        <div class="head"><h2>Carregar a produção</h2><span class="muted small" id="fileInfo">Relatório do sistema da clínica em Excel ou CSV</span></div>
+        <div class="head"><h2>Carregar a produção</h2><span class="muted small" id="fileInfo">Relatório do sistema da clínica em PDF, Excel ou CSV</span></div>
         <div id="lockNote1"></div>
         <label class="drop" id="drop">
-          <input type="file" id="file" accept=".xlsx,.xls,.csv,.ods">
+          <input type="file" id="file" accept=".pdf,.xlsx,.xls,.csv,.ods">
           <strong>Clique para escolher o arquivo</strong> ou arraste aqui.
           <span class="muted small">Os dados dos pacientes ficam somente neste computador.</span>
         </label>
