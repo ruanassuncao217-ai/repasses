@@ -3,6 +3,6 @@ main = "proxy.js"
 compatibility_date = "2026-01-01"
 
 [vars]
-ALLOWED_ORIGINS = "https://SEU-USUARIO.github.io"
+ALLOWED_ORIGINS = "https://ruanassuncao217-ai.github.io"
 ALLOWED_MODELS = "claude-sonnet-5-5,claude-haiku-5-5"
 MAX_TOKENS = "1500"
